@@ -315,11 +315,15 @@ done
 # generate IP tables rules
 /bin/template.py \
     -d "$ENCRYPTME_DATA_DIR/server.json" \
-    -s /etc/iptables.rules.j2 \
-    -o /etc/iptables.rules \
+    -s /etc/iptables.rules.fixed.j2 \
+    -o /etc/iptables.eme.rules \
     -v ipaddress=$DNS
-# TODO this leaves extra rules around
-/sbin/iptables-restore --noflush < /etc/iptables.rules
+
+# Always pull the system rules and merge with eme rules
+/sbin/iptables-save > /etc/iptables.original.rules
+cat /etc/iptables.original.rules /etc/iptables.eme.rules > /etc/iptables.rules
+/sbin/iptables-restore --noflush /etc/iptables.rules
+/sbin/iptables-save | awk '/^COMMIT$/ { delete x; }; !x[$0]++' | /sbin/iptables-restore 
 
 
 rem "Configuring and launching OpenVPN"
